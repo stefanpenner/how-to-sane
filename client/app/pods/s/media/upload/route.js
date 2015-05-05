@@ -30,6 +30,11 @@ export default Ember.Route.extend({
     },
     save: function uploadPhotos() {
 
+    },
+    delete: function removePhoto(photoFile) {
+      let controller = this.controller;
+      let filteredArray = controller.get('photos').rejectBy('file', photoFile.file);
+      controller.set('photos', filteredArray);
     }
   }
 });
