@@ -5,23 +5,37 @@ import { point } from 'client/utils/to-geo-json';
 export default Ember.Controller.extend({
   queryParams: ['fromDate'],
   fromDate: null,
-  showStatusWizard: false,
+  showTopPanel: false,
   setGeo: Ember.on('init', async function () {
     try {
       let geo = await this.geoGoogleService.getGeoposition();
       let address = await this.geoGoogleService.getAddressForLatLong(geo);
+      this.drawPlacesMap(geo);
       this.set('geo', geo);
       this.set('address', address);
     } catch (err) {
-      console.log('There was a problem with detecting your location', err);
+      Ember.get(this, 'flashMessages').error(err);
     }
   }),
+  async drawPlacesMap(geo) {
+    try {
+      this.geoGoogleService.drawMap(geo, 'mapfeed');
+      this.set('nearbyPlaces', await this.geoGoogleService.getNearbyPlaces(geo, true));
+    } catch (err) {
+      Ember.get(this, 'flashMessages').error(err);
+    }
+  },
   actions: {
     clearDate() {
       this.set('fromDate', null);
     },
     showStatusWizard() {
-      this.toggleProperty('showStatusWizard');
+      this.set('topPanel', 'feed.post-status');
+      this.toggleProperty('showTopPanel');
+    },
+    showSearchPanel() {
+      this.set('topPanel', 'feed.search-panel');
+      this.toggleProperty('showTopPanel');
     },
     async postStatus(model) {
       try {
@@ -32,10 +46,9 @@ export default Ember.Controller.extend({
         let location = { lat: this.get('geo').latitude, lng: this.get('geo').longitude };
         model.set('location', point(location));
         await model.save();
-        this.toggleProperty('showStatusWizard');
+        this.toggleProperty('showTopPanel');
       } catch (err) {
-        // TODO flash the error message
-        console.log('There was a problem with posting your status', err);
+        Ember.get(this, 'flashMessages').error(err);
       }
     }
   }
